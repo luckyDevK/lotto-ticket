@@ -67,7 +67,7 @@ func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 
 	// while there are exist a false entry in V
 	for ls.hasUncovered(V) {
-		// Select k-subset T of of n as the next ticket to buy
+		// Select k-subset T of n as the next ticket to buy
 		// For each of the l-subsets Ti of T, V[rank(Ti)] = true
 		// report the set of tickets bought
 	}
