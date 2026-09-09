@@ -111,14 +111,21 @@ func rank(subset []int) int64 {
 	return -1
 }
 
-func (s *SATicket) C(ticket []int) int {
+func (s *SATicket) C(V []bool, ticket []int, l int) int {
 	// initialize t = 0
+	t := 0
 	// initalize (ticket l) subset to Ls
+	bt := NewBackTrack(ticket, l)
 	// for each s of Ls
-	// if V[rank(s)] == false
-	// t--
+	for _, s := range bt.acceptedSubsets {
+		// if V[rank(s)] == false
+		if !V[rank(s)] {
+			// t--
+			t--
+		}
+	}
 
-	return 0
+	return t
 }
 
 func (b *LottoSearch) hasUncovered(V []bool) bool {
