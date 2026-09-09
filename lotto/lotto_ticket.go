@@ -2,6 +2,7 @@ package lotto
 
 import (
 	"fmt"
+	"math/big"
 	"slices"
 )
 
@@ -41,7 +42,6 @@ type Backtracking interface {
 type BackTrack struct {
 	p, rot  []int
 	k       int
-	path    string
 	content map[string]any
 
 	acceptedSubsets [][]int
@@ -59,6 +59,7 @@ type LottoSearch struct {
 
 type SATicket struct {
 	noImprovementStreak, iterationPerTemp int
+	V                                     []bool
 }
 
 func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
@@ -87,8 +88,37 @@ func (s *SATicket) Transition() {
 
 }
 
-func (s *SATicket) C(ticket []int) {
-	//
+func rank(subset []int) int64 {
+	// get total of C(c3, 3) + C(c2, 2) + C(c1, 1)
+	c3 := new(big.Int).Binomial(int64(subset[2]), 3)
+	c2 := new(big.Int).Binomial(int64(subset[1]), 2)
+	c1 := new(big.Int).Binomial(int64(subset[0]), 1)
+
+	index := c3.Int64() + c2.Int64() + c1.Int64()
+
+	isVerified := false
+
+	for i := 0; i < 1; i++ {
+		if r := new(big.Int).Binomial(int64(subset[i]), int64(i+1)).Int64(); r <= index {
+			isVerified = true
+		}
+	}
+
+	if isVerified {
+		return index
+	}
+
+	return -1
+}
+
+func (s *SATicket) C(ticket []int) int {
+	// initialize t = 0
+	// initalize (ticket l) subset to Ls
+	// for each s of Ls
+	// if V[rank(s)] == false
+	// t--
+
+	return 0
 }
 
 func (b *LottoSearch) hasUncovered(V []bool) bool {
@@ -218,11 +248,11 @@ func (b *BackTrack) getAcceptedSubsets(node Node) {
 }
 
 func (b *BackTrack) validateOrder(it []int) bool {
-	for i := 0; i < len(it)-1; i++ {
-		if it[i] >= it[i+1] {
-			return false
-		}
-	}
+	// for i := 0; i < len(it)-1; i++ {
+	// 	if it[i] >= it[i+1] {
+	// 		return false
+	// 	}
+	// }
 
 	return true
 }
@@ -253,12 +283,8 @@ func backtrack(b *BackTrack, c []int) (Node, bool) {
 	return node, true
 }
 
-func Permutations() {
+func NewBackTrack(n []int, l int) *BackTrack {
 	count := 0
-
-	n := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-	l := 3
-	// k := 6
 
 	acceptedSubsets := make([][]int, 0)
 
@@ -268,13 +294,23 @@ func Permutations() {
 
 	_, _ = backtrack(&backtrackk, []int{})
 
-	//fmt.Println("ss", backtrackk.acceptedSubsets)
+	return &backtrackk
+}
 
-	for _, subset := range backtrackk.acceptedSubsets {
-		fmt.Printf("subset: %v\n", subset)
+func Permutations() {
+
+	n := []int{1, 2, 3, 4, 5, 6}
+	l := 3
+	// k := 6
+
+	bt := NewBackTrack(n, l)
+
+	for _, s := range bt.acceptedSubsets {
+		fmt.Println("ss", s)
 	}
 
-	fmt.Println("accepted total:", *backtrackk.acceptedCount)
+	fmt.Println("acceptedCount: \n", *bt.acceptedCount)
+
 	// fmt.Println("ven:", root)
 
 	// backtrackk.content = map[string]any{
