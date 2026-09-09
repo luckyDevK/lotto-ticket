@@ -90,21 +90,21 @@ func (s *SATicket) Transition() {
 
 func rank(subset []int) int64 {
 	// get total of C(c3, 3) + C(c2, 2) + C(c1, 1)
-	c3 := new(big.Int).Binomial(int64(subset[2]), 3)
-	c2 := new(big.Int).Binomial(int64(subset[1]), 2)
-	c1 := new(big.Int).Binomial(int64(subset[0]), 1)
+	c3 := new(big.Int).Binomial(int64(subset[2]), 3).Int64()
+	c2 := new(big.Int).Binomial(int64(subset[1]), 2).Int64()
+	c1 := new(big.Int).Binomial(int64(subset[0]), 1).Int64()
 
-	index := c3.Int64() + c2.Int64() + c1.Int64()
+	index := c3 + c2 + c1
 
-	isVerified := false
+	r3 := new(big.Int).Binomial(int64(subset[3]), 3).Int64()
 
-	for i := 0; i < 1; i++ {
-		if r := new(big.Int).Binomial(int64(subset[i]), int64(i+1)).Int64(); r <= index {
-			isVerified = true
-		}
-	}
+	isValidC3 := index >= c3 && c3 < r3
 
-	if isVerified {
+	r2 := new(big.Int).Binomial(int64(subset[2]), 2).Int64()
+
+	isValidC2 := index >= c2 && c2 < r2
+
+	if isValidC3 && isValidC2 {
 		return index
 	}
 
