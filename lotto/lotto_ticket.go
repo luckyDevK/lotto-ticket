@@ -2,7 +2,8 @@ package lotto
 
 import (
 	"fmt"
-	"math/big"
+	"math"
+	"math/rand/v2"
 	"slices"
 )
 
@@ -58,8 +59,9 @@ type LottoSearch struct {
 }
 
 type SATicket struct {
-	noImprovementStreak, iterationPerTemp int
-	V                                     []bool
+	iterationPerTemp int
+	V                []bool
+	k                float64
 }
 
 func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
@@ -76,42 +78,108 @@ func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 	return [][]int{}
 }
 
-func (s *SATicket) GenerateTicket(kTicket []int) {
-	// currentS = kTicket
+// func (ls *LottoSearch) randomTicket(n []int, k int) []int {
+
+// }
+
+//   function randomTicket(n, k):
+//       pick k distinct numbers uniformly at random from [1, n]   // partial Fisher–Yates or resample-if-duplicate
+//       sort them
+//       return
+
+func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 	// initialize temp = 1
+	var temp float64
+	var noImprovementStreak int
+	temp = 1
+	// current = kTicket
+	current := kTicket
+	// curC = C(V, current)                  // cost computed ONCE here
+	currC := choose(len(s.V), len(current))
+	// best, bestC = current, curC
+	best, bestC := current, currC
 	// while noImprovementStreak <= 10 do
-	// for i until iterationPerTemp do
-	//
-}
-
-func (s *SATicket) Transition() {
-
-}
-
-func rank(subset []int) int64 {
-	// get total of C(c3, 3) + C(c2, 2) + C(c1, 1)
-	c3 := new(big.Int).Binomial(int64(subset[2]), 3).Int64()
-	c2 := new(big.Int).Binomial(int64(subset[1]), 2).Int64()
-	c1 := new(big.Int).Binomial(int64(subset[0]), 1).Int64()
-
-	index := c3 + c2 + c1
-
-	r3 := new(big.Int).Binomial(int64(subset[3]), 3).Int64()
-
-	isValidC3 := index >= c3 && c3 < r3
-
-	r2 := new(big.Int).Binomial(int64(subset[2]), 2).Int64()
-
-	isValidC2 := index >= c2 && c2 < r2
-
-	if isValidC3 && isValidC2 {
-		return index
+	for noImprovementStreak <= 10 {
+		// 	for i in 0..iterationPerTemp:
+		for range s.iterationPerTemp {
+			//   	NT = Transition(n, current)
+			NT := s.Transition(n, current)
+			//   	nextC = C(V, NT)
+			nextC := choose(len(s.V), len(NT))
+			//   	delta = nextC - curC
+			delta := nextC - currC
+			flip := rand.Float64() * 1
+			exponent := -float64(delta) / (s.k * temp)
+			//   	if delta < 0 or random() < exp(-delta / k*temp):
+			if delta < 0 || flip < math.Exp(exponent) {
+				//       	current, curC = NT, nextC        // walk moves (maybe downhill!)
+				current, currC := NT, nextC
+				//   	if curC < bestC:                     // outside the accept branch
+				if currC < bestC {
+					//       	best, bestC = current, curC
+					best, bestC = current, currC
+					//       	noImprovementStreak = 0
+					noImprovementStreak = 0
+					//   	else:
+				} else {
+					//      	noImprovementStreak++
+					noImprovementStreak++
+				}
+			}
+		}
+		//   temp *= 0.95
+		temp *= 0.95
 	}
 
-	return -1
+	return best
+
 }
 
-func (s *SATicket) C(V []bool, ticket []int, l int) int {
+func (s *SATicket) Transition(n, ticket []int) []int {
+	// NT = copy(Ticket)
+	NT := ticket
+	// pos = random index in [0, len(NT)]
+	pos := rand.IntN(len(NT))
+	// y random num in [1,n]
+	y := n[rand.IntN(len(n))]
+	// reject and resample while y already exists anywhere in NT
+	// while y in NT
+	for slices.Contains(NT, y) {
+		// y = random number in [1, n]
+		y = n[rand.IntN(len(n))]
+	}
+	// NT[pos] = y
+	NT[pos] = y
+	// sort(NT)
+	slices.Sort(NT)
+	// return NT
+	return NT
+}
+
+func choose(n, k int) int {
+	if k < 0 || k > n {
+		return 0
+	}
+	result := 1
+	for i := 1; i <= k; i++ {
+		result = result * (n - k + i) / i
+	}
+	return result
+}
+
+func rank(subset []int) int {
+	// index := 0
+	index := 0
+
+	// for i, s range subset do
+	for i, v := range subset {
+		index += choose(v-1, i+1)
+	}
+
+	return index
+}
+
+func (sa *SATicket) uncoveredCount(ticket []int, l int) int {
 	// initialize t = 0
 	t := 0
 	// initalize (ticket l) subset to Ls
@@ -119,8 +187,7 @@ func (s *SATicket) C(V []bool, ticket []int, l int) int {
 	// for each s of Ls
 	for _, s := range bt.acceptedSubsets {
 		// if V[rank(s)] == false
-		if !V[rank(s)] {
-			// t--
+		if !sa.V[rank(s)] {
 			t--
 		}
 	}
