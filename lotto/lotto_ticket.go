@@ -78,12 +78,29 @@ func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 	return [][]int{}
 }
 
-// func (ls *LottoSearch) randomTicket(n []int, k int) []int {
+func (ls *LottoSearch) randomTicket(n []int, k int) []int {
+	nCopy := slices.Clone(n)
+	ks := shuffle(nCopy, k)
+	slices.Sort(ks)
+	return ks
+}
 
-// }
+// func shuffle(n, k) []int do
+func shuffle(n []int, k int) []int {
+	for i := len(n) - 1; 0 <= i; i-- {
+		j := rand.IntN(i + 1)
+		n[i], n[j] = n[j], n[i]
+		if i == len(n)-(k) {
+			return n[i:]
+		}
+	}
+
+	return n[len(n)-k:]
+}
 
 //   function randomTicket(n, k):
-//       pick k distinct numbers uniformly at random from [1, n]   // partial Fisher–Yates or resample-if-duplicate
+// 		 copy n to P
+//       pick k distinct numbers uniformly at random from P = [1, n]   // partial Fisher–Yates or resample-if-duplicate
 //       sort them
 //       return
 
@@ -95,7 +112,7 @@ func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 	// current = kTicket
 	current := kTicket
 	// curC = C(V, current)                  // cost computed ONCE here
-	currC := choose(len(s.V), len(current))
+	currC := s.uncoveredCount(current, len(current))
 	// best, bestC = current, curC
 	best, bestC := current, currC
 	// while noImprovementStreak <= 10 do
@@ -105,7 +122,7 @@ func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 			//   	NT = Transition(n, current)
 			NT := s.Transition(n, current)
 			//   	nextC = C(V, NT)
-			nextC := choose(len(s.V), len(NT))
+			nextC := s.uncoveredCount(NT, len(NT))
 			//   	delta = nextC - curC
 			delta := nextC - currC
 			flip := rand.Float64() * 1
@@ -113,18 +130,18 @@ func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 			//   	if delta < 0 or random() < exp(-delta / k*temp):
 			if delta < 0 || flip < math.Exp(exponent) {
 				//       	current, curC = NT, nextC        // walk moves (maybe downhill!)
-				current, currC := NT, nextC
-				//   	if curC < bestC:                     // outside the accept branch
-				if currC < bestC {
-					//       	best, bestC = current, curC
-					best, bestC = current, currC
-					//       	noImprovementStreak = 0
-					noImprovementStreak = 0
-					//   	else:
-				} else {
-					//      	noImprovementStreak++
-					noImprovementStreak++
-				}
+				current, currC = NT, nextC
+			}
+			//   	if curC < bestC:                     // outside the accept branch
+			if currC < bestC {
+				//       	best, bestC = current, curC
+				best, bestC = current, currC
+				//       	noImprovementStreak = 0
+				noImprovementStreak = 0
+				//   	else:
+			} else {
+				//      	noImprovementStreak++
+				noImprovementStreak++
 			}
 		}
 		//   temp *= 0.95
@@ -136,22 +153,21 @@ func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 }
 
 func (s *SATicket) Transition(n, ticket []int) []int {
-	// NT = copy(Ticket)
-	NT := ticket
+	NT := slices.Clone(ticket)
 	// pos = random index in [0, len(NT)]
-	pos := rand.IntN(len(NT))
+	pos := rand.IntN(len(ticket))
 	// y random num in [1,n]
-	y := n[rand.IntN(len(n))]
+	y := n[rand.IntN(len(ticket))]
 	// reject and resample while y already exists anywhere in NT
 	// while y in NT
-	for slices.Contains(NT, y) {
+	for slices.Contains(ticket, y) {
 		// y = random number in [1, n]
 		y = n[rand.IntN(len(n))]
 	}
 	// NT[pos] = y
-	NT[pos] = y
+	ticket[pos] = y
 	// sort(NT)
-	slices.Sort(NT)
+	slices.Sort(ticket)
 	// return NT
 	return NT
 }
