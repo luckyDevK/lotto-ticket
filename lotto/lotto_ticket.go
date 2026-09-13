@@ -54,9 +54,7 @@ type Node struct {
 	Children []Node `json:"children"`
 }
 
-type LottoSearch struct {
-	totalSubsets int
-}
+type LottoSearch struct{}
 
 type SATicket struct {
 	iterationPerTemp int
@@ -66,19 +64,28 @@ type SATicket struct {
 
 func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 	// initialize the (n l)-element bit-vector V to all false
-	V := make([]bool, ls.totalSubsets)
+	V := make([]bool, choose(len(n), l))
+	tickets := [][]int{}
+
+	saT := SATicket{iterationPerTemp: 100, k: 97.47, V: V}
 
 	// while there are exist a false entry in V
 	for ls.hasUncovered(V) {
 		// Select k-subset T of n as the next ticket to buy
-		// For each of the l-subsets Ti of T, V[rank(Ti)] = true
-		// report the set of tickets bought
-	}
+		ticket := saT.GenerateTicket(n, k, l)
 
-	return [][]int{}
+		// For each of the l-subsets Ti of T, V[rank(Ti)] = true
+		bt := NewBackTrack(ticket, l)
+		for _, s := range bt.acceptedSubsets {
+			V[rank(s)] = true
+		}
+		tickets = append(tickets, ticket)
+	}
+	// report the set of tickets bought
+	return tickets
 }
 
-func (ls *LottoSearch) randomTicket(n []int, k int) []int {
+func randomTicket(n []int, k int) []int {
 	nCopy := slices.Clone(n)
 	ks := shuffle(nCopy, k)
 	slices.Sort(ks)
@@ -104,15 +111,16 @@ func shuffle(n []int, k int) []int {
 //       sort them
 //       return
 
-func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
+func (s *SATicket) GenerateTicket(n []int, k, l int) []int {
+	kTicket := randomTicket(n, k)
 	// initialize temp = 1
 	var temp float64
 	var noImprovementStreak int
-	temp = 1
+	temp = 1.0
 	// current = kTicket
 	current := kTicket
 	// curC = C(V, current)                  // cost computed ONCE here
-	currC := s.uncoveredCount(current, len(current))
+	currC := s.uncoveredCount(current, l)
 	// best, bestC = current, curC
 	best, bestC := current, currC
 	// while noImprovementStreak <= 10 do
@@ -122,10 +130,10 @@ func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 			//   	NT = Transition(n, current)
 			NT := s.Transition(n, current)
 			//   	nextC = C(V, NT)
-			nextC := s.uncoveredCount(NT, len(NT))
+			nextC := s.uncoveredCount(NT, l)
 			//   	delta = nextC - curC
 			delta := nextC - currC
-			flip := rand.Float64() * 1
+			flip := rand.Float64()
 			exponent := -float64(delta) / (s.k * temp)
 			//   	if delta < 0 or random() < exp(-delta / k*temp):
 			if delta < 0 || flip < math.Exp(exponent) {
@@ -147,6 +155,8 @@ func (s *SATicket) GenerateTicket(n, kTicket []int) []int {
 		//   temp *= 0.95
 		temp *= 0.95
 	}
+
+	fmt.Println("bestC", bestC)
 
 	return best
 
@@ -389,17 +399,31 @@ func NewBackTrack(n []int, l int) *BackTrack {
 
 func Permutations() {
 
-	n := []int{1, 2, 3, 4, 5, 6}
+	n := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	l := 3
-	// k := 6
+	k := 6
 
-	bt := NewBackTrack(n, l)
+	// bt := NewBackTrack(n, l)
 
-	for _, s := range bt.acceptedSubsets {
-		fmt.Println("ss", s)
+	// for _, s := range bt.acceptedSubsets {
+	// 	fmt.Println("ss", s)
+	// }
+
+	// fmt.Println("acceptedCount: \n", *bt.acceptedCount)
+
+	// for range 5 {
+	// 	fmt.Println(randomTicket([]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, 6))
+	// }
+
+	sd := LottoSearch{}
+
+	tickets := sd.LottTicketSet(n, k, l)
+
+	for _, ticket := range tickets {
+		fmt.Printf("ticket : %v\n", ticket)
 	}
 
-	fmt.Println("acceptedCount: \n", *bt.acceptedCount)
+	fmt.Println("total", len(tickets))
 
 	// fmt.Println("ven:", root)
 
