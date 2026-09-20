@@ -57,6 +57,7 @@ type Node struct {
 type LottoSearch struct{}
 
 type SATicket struct {
+	bt               *BackTrack
 	iterationPerTemp int
 	V                []bool
 	k                float64
@@ -64,25 +65,61 @@ type SATicket struct {
 
 func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 	// initialize the (n l)-element bit-vector V to all false
-	V := make([]bool, choose(len(n), l))
+	V := make([]bool, choose(len(n), k))
+	bt := NewBackTrack(n, k)
 	tickets := [][]int{}
 
-	saT := SATicket{iterationPerTemp: 100, k: 97.47, V: V}
+	saT := SATicket{iterationPerTemp: 100, k: 97.47, V: V, bt: bt}
+
+	// countBio := 0
 
 	// while there are exist a false entry in V
 	for ls.hasUncovered(V) {
 		// Select k-subset T of n as the next ticket to buy
 		ticket := saT.GenerateTicket(n, k, l)
 
-		// For each of the l-subsets Ti of T, V[rank(Ti)] = true
-		bt := NewBackTrack(ticket, l)
-		for _, s := range bt.acceptedSubsets {
-			V[rank(s)] = true
+		// For each of the j-subsets Ti of T, V[rank(Ti)] = true
+
+		fresh := 0
+		// countBio++
+		for _, w := range bt.acceptedSubsets {
+			// fmt.Println("continue")
+			if res := intersectionOfTwoArrays(ticket, w); len(res) >= l {
+				if !V[rank(w)] {
+					V[rank(w)] = true
+					fresh++
+				}
+				// fmt.Printf("to:%v subset %v → tickets %v\n", countBio, w, ticket)
+			}
 		}
-		tickets = append(tickets, ticket)
+
+		if fresh > 0 {
+			tickets = append(tickets, ticket)
+		}
 	}
 	// report the set of tickets bought
 	return tickets
+}
+
+func intersectionOfTwoArrays(arr, arr2 []int) []int {
+	numMap := map[int]bool{}
+
+	for _, val := range arr {
+		numMap[val] = true
+	}
+
+	result := []int{}
+
+	resultMap := map[int]bool{}
+
+	for i := 0; i < len(arr2); i++ {
+		if numMap[arr2[i]] && !resultMap[arr2[i]] {
+			result = append(result, arr2[i])
+			resultMap[arr2[i]] = true
+		}
+	}
+
+	return result
 }
 
 func randomTicket(n []int, k int) []int {
@@ -120,7 +157,7 @@ func (s *SATicket) GenerateTicket(n []int, k, l int) []int {
 	// current = kTicket
 	current := kTicket
 	// curC = C(V, current)                  // cost computed ONCE here
-	currC := s.uncoveredCount(current, l)
+	currC := s.cost(current, k)
 	// best, bestC = current, curC
 	best, bestC := current, currC
 	// while noImprovementStreak <= 10 do
@@ -130,7 +167,7 @@ func (s *SATicket) GenerateTicket(n []int, k, l int) []int {
 			//   	NT = Transition(n, current)
 			NT := s.Transition(n, current)
 			//   	nextC = C(V, NT)
-			nextC := s.uncoveredCount(NT, l)
+			nextC := s.cost(NT, k)
 			//   	delta = nextC - curC
 			delta := nextC - currC
 			flip := rand.Float64()
@@ -156,10 +193,9 @@ func (s *SATicket) GenerateTicket(n []int, k, l int) []int {
 		temp *= 0.95
 	}
 
-	fmt.Println("bestC", bestC)
+	//fmt.Println("bestC", bestC)
 
 	return best
-
 }
 
 func (s *SATicket) Transition(n, ticket []int) []int {
@@ -167,7 +203,7 @@ func (s *SATicket) Transition(n, ticket []int) []int {
 	// pos = random index in [0, len(NT)]
 	pos := rand.IntN(len(ticket))
 	// y random num in [1,n]
-	y := n[rand.IntN(len(ticket))]
+	y := n[rand.IntN(len(n))]
 	// reject and resample while y already exists anywhere in NT
 	// while y in NT
 	for slices.Contains(ticket, y) {
@@ -175,9 +211,9 @@ func (s *SATicket) Transition(n, ticket []int) []int {
 		y = n[rand.IntN(len(n))]
 	}
 	// NT[pos] = y
-	ticket[pos] = y
+	NT[pos] = y
 	// sort(NT)
-	slices.Sort(ticket)
+	slices.Sort(NT)
 	// return NT
 	return NT
 }
@@ -205,15 +241,13 @@ func rank(subset []int) int {
 	return index
 }
 
-func (sa *SATicket) uncoveredCount(ticket []int, l int) int {
+func (sa *SATicket) cost(ticket []int, k int) int {
 	// initialize t = 0
 	t := 0
-	// initalize (ticket l) subset to Ls
-	bt := NewBackTrack(ticket, l)
 	// for each s of Ls
-	for _, s := range bt.acceptedSubsets {
+	for _, s := range sa.bt.acceptedSubsets {
 		// if V[rank(s)] == false
-		if !sa.V[rank(s)] {
+		if res := intersectionOfTwoArrays(ticket, s); !sa.V[rank(s)] && len(res) >= k {
 			t--
 		}
 	}
@@ -397,11 +431,21 @@ func NewBackTrack(n []int, l int) *BackTrack {
 	return &backtrackk
 }
 
-func Permutations() {
+// covers reports whether ticket t contains every element of subset s.
+func covers(t, s []int) bool {
+	for _, v := range s {
+		if !slices.Contains(t, v) {
+			return false // one missing element → s can't be inside t
+		}
+	}
+	return true
+}
 
+func Permutations() {
 	n := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	l := 3
 	k := 6
+	//j := 2
 
 	// bt := NewBackTrack(n, l)
 
@@ -419,11 +463,42 @@ func Permutations() {
 
 	tickets := sd.LottTicketSet(n, k, l)
 
-	for _, ticket := range tickets {
-		fmt.Printf("ticket : %v\n", ticket)
+	for j, ticket := range tickets {
+		fmt.Printf("ticket : %d  %v\n", j, ticket)
 	}
 
 	fmt.Println("total", len(tickets))
+
+	for _, s := range NewBackTrack(n, l).acceptedSubsets {
+		coveredBy := []int{} // which ticket indices cover this subset
+		for j, ticket := range tickets {
+			if covers(ticket, s) {
+				coveredBy = append(coveredBy, j)
+			}
+		}
+		fmt.Printf("subset %v → tickets %v\n", s, coveredBy)
+	}
+
+	// counts[r] = how many bought tickets contain the triple whose rank is r
+	counts := make([]int, choose(len(n), l))
+	for _, t := range tickets {
+		bt := NewBackTrack(t, l)
+		for _, s := range bt.acceptedSubsets {
+			counts[rank(s)]++
+		}
+	}
+
+	// hist[c] = how many triples are covered exactly c times
+	hist := make([]int, 0, 10)
+	for _, c := range counts {
+		for len(hist) <= c {
+			hist = append(hist, 0)
+		}
+		hist[c]++
+	}
+	for c, num := range hist {
+		fmt.Printf("covered %2d times: %d triples\n", c, num)
+	}
 
 	// fmt.Println("ven:", root)
 
