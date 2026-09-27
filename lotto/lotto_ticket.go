@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/rand/v2"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 // P = {1,2,3,4,5,6,7,8,9,10,11...}
@@ -63,7 +65,7 @@ type SATicket struct {
 	k                float64
 }
 
-func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
+func (ls *LottoSearch) LottTicketSet(n []int, k, l int) ([][]int, []int) {
 	// initialize the (n l)-element bit-vector V to all false
 	V := make([]bool, choose(len(n), k))
 	bt := NewBackTrack(n, k)
@@ -71,7 +73,7 @@ func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 
 	saT := SATicket{iterationPerTemp: 100, k: 97.47, V: V, bt: bt}
 
-	// countBio := 0
+	countBio := 0
 
 	// while there are exist a false entry in V
 	for ls.hasUncovered(V) {
@@ -79,12 +81,16 @@ func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 		ticket := saT.GenerateTicket(n, k, l)
 
 		// For each of the j-subsets Ti of T, V[rank(Ti)] = true
-
+		countBio++
 		fresh := 0
 		// countBio++
+		countIntersectTick := 0
+
 		for _, w := range bt.acceptedSubsets {
 			// fmt.Println("continue")
 			if res := intersectionOfTwoArrays(ticket, w); len(res) >= l {
+				// fmt.Println(w, "ticket")
+				countIntersectTick++
 				if !V[rank(w)] {
 					V[rank(w)] = true
 					fresh++
@@ -97,8 +103,25 @@ func (ls *LottoSearch) LottTicketSet(n []int, k, l int) [][]int {
 			tickets = append(tickets, ticket)
 		}
 	}
+
+	winner := ls.getWinner(bt.acceptedSubsets)
+
+	//fmt.Println("countBio", countBio)
 	// report the set of tickets bought
-	return tickets
+	return tickets, winner
+}
+
+func (ls *LottoSearch) getWinner(candidateWinner [][]int) []int {
+	return candidateWinner[rand.IntN(len(candidateWinner))]
+}
+
+func splitArr(arr []int) string {
+	var res strings.Builder
+	for i := range arr {
+		res.WriteString(strconv.Itoa(arr[i]))
+	}
+
+	return res.String()
 }
 
 func intersectionOfTwoArrays(arr, arr2 []int) []int {
@@ -461,23 +484,58 @@ func Permutations() {
 
 	sd := LottoSearch{}
 
-	tickets := sd.LottTicketSet(n, k, l)
+	tickets, winnerTicket := sd.LottTicketSet(n, k, l)
+
+	fmt.Println(winnerTicket, "winnerTicket")
+
+	winners := [][]int{}
+
+	// for each tickets
+	ticketWinning := 0
+	for _, ticket := range tickets {
+		if len(intersectionOfTwoArrays(ticket, winnerTicket)) >= l {
+			ticketWinning++
+			winners = append(winners, ticket)
+		}
+	}
+
+	fmt.Println("ticketWinning", ticketWinning)
+	// if ticket intersect with winnerTicket >3
+	// then ticketwinning++
 
 	for j, ticket := range tickets {
-		fmt.Printf("ticket : %d  %v\n", j, ticket)
+		fmt.Printf("ticket : %d  %v\n", j+1, ticket)
 	}
+
+	bt := NewBackTrack(n, k)
+
+	var uncoveredCount int
+	for _, s := range bt.acceptedSubsets {
+		c := 0
+		for _, winner := range tickets {
+			if len(intersectionOfTwoArrays(winner, s)) >= l {
+				c++
+			}
+		}
+
+		if c == 0 {
+			uncoveredCount++
+		}
+	}
+
+	fmt.Println("uncoveredCount", uncoveredCount)
 
 	fmt.Println("total", len(tickets))
 
-	for _, s := range NewBackTrack(n, l).acceptedSubsets {
-		coveredBy := []int{} // which ticket indices cover this subset
-		for j, ticket := range tickets {
-			if covers(ticket, s) {
-				coveredBy = append(coveredBy, j)
-			}
-		}
-		fmt.Printf("subset %v → tickets %v\n", s, coveredBy)
-	}
+	// for _, s := range NewBackTrack(n, l).acceptedSubsets {
+	// 	coveredBy := []int{} // which ticket indices cover this subset
+	// 	for j, ticket := range tickets {
+	// 		if covers(ticket, s) {
+	// 			coveredBy = append(coveredBy, j)
+	// 		}
+	// 	}
+	// 	fmt.Printf("subset %v → tickets %v\n", s, coveredBy)
+	// }
 
 	// counts[r] = how many bought tickets contain the triple whose rank is r
 	counts := make([]int, choose(len(n), l))
@@ -489,16 +547,16 @@ func Permutations() {
 	}
 
 	// hist[c] = how many triples are covered exactly c times
-	hist := make([]int, 0, 10)
-	for _, c := range counts {
-		for len(hist) <= c {
-			hist = append(hist, 0)
-		}
-		hist[c]++
-	}
-	for c, num := range hist {
-		fmt.Printf("covered %2d times: %d triples\n", c, num)
-	}
+	// hist := make([]int, 0, 10)
+	// for _, c := range counts {
+	// 	for len(hist) <= c {
+	// 		hist = append(hist, 0)
+	// 	}
+	// 	hist[c]++
+	// }
+	// for c, num := range hist {
+	// 	fmt.Printf("covered %2d times: %d triples\n", c, num)
+	// }
 
 	// fmt.Println("ven:", root)
 
