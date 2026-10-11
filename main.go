@@ -3,7 +3,8 @@ package main
 import (
 	"cmp"
 	"fmt"
-	"impl-skiena/lotto"
+	biocoeff "impl-skiena/bioCoeff"
+	"log"
 	"math"
 	"slices"
 )
@@ -99,6 +100,110 @@ func Visit(robotTours []RobotTour) {
 	}
 }
 
+func getItemsArr(arr, it []int) (int, int) {
+	var existingVertex int
+	for i := 0; i < len(arr); i++ {
+		for j := 0; j < len(it); j++ {
+			if arr[i] == it[j] {
+				existingVertex = arr[i]
+			}
+		}
+	}
+
+	return existingVertex, it[0]
+}
+
+func containsAll(subset, chain []int) bool {
+	//fmt.Println(chain, "chaintos")
+	countExist := 0
+	for i := 0; i < len(chain); i++ {
+		for j := 0; j < len(subset); j++ {
+			if chain[i] == subset[j] {
+				countExist++
+			}
+		}
+	}
+
+	//fmt.Println(countExist == len(subset), chain, "countExist")
+	return countExist == len(subset)
+}
+
+func isStartItem(it int, arr []int) bool {
+	return len(arr) > 0 && arr[0] == it
+}
+
+func getDist(s, t int) int {
+	if s > t {
+		return s - t
+	} else {
+		return t - s
+	}
+}
+
+func connectByEdge(chain []int, endp []int) []int {
+	if len(chain) == 0 {
+		//fmt.Println(chain, "chain")
+		chain = append(chain, endp...)
+		return chain
+
+	}
+	existingVertex, differVert := getItemsArr(chain, endp)
+
+	if existingVertex == -1 {
+		log.Fatal("no existing vertex")
+	}
+	fmt.Println(endp, "endpoint")
+	//fmt.Println(existingVertex, "existingVertex")'
+	// if existingVertex == chain[0] {
+	//
+	// } else {
+	// 	chain = append(chain, chain[len(chain)-1])
+	// }
+	if isStartItem(existingVertex, chain) {
+		fmt.Println(existingVertex, differVert, chain, "test")
+		chain = append([]int{differVert}, chain...)
+		fmt.Println("yes", chain)
+	} else {
+		chain = append(chain, existingVertex)
+	}
+
+	return chain
+}
+
+func ClosestPair(p []int) []int {
+	var chain []int
+
+	bt := biocoeff.NewBackTrack(p, 2)
+
+	fmt.Println(bt.AcceptedSubsets, len(bt.Subsets()), "bt.Subsets()")
+
+	for i := 1; i < len(p)-1; i++ {
+		dist := math.MaxInt
+		sub := []int{}
+
+		//fmt.Println(chain, "chain")
+
+		for _, subset := range bt.AcceptedSubsets {
+			if containsAll(subset, chain) {
+				continue
+			}
+
+			firstSub := subset[0]
+			lastSub := subset[1]
+			//fmt.Println(firstSub, lastSub, "firstSub And lastSub")
+
+			if getDist(firstSub, lastSub) <= dist {
+				sub = subset
+				dist = getDist(firstSub, lastSub)
+			}
+		}
+		//fmt.Println("sub and dist", sub, dist)
+		chain = connectByEdge(chain, sub)
+	}
+
+	return chain
+}
+
 func main() {
 
 	// robots := []RobotTour{
@@ -112,5 +217,8 @@ func main() {
 	// }
 	// Visit(robots)
 
-	lotto.Permutations()
+	ch := ClosestPair([]int{5, 1, -21, 3, -1, 0, 11})
+	fmt.Println(ch, "chain")
+
+	// lotto.Permutations()
 }
