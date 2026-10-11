@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	biocoeff "impl-skiena/bioCoeff"
-	"log"
 	"math"
 	"slices"
 )
@@ -101,16 +100,22 @@ func Visit(robotTours []RobotTour) {
 }
 
 func getItemsArr(arr, it []int) (int, int) {
-	var existingVertex int
-	for i := 0; i < len(arr); i++ {
-		for j := 0; j < len(it); j++ {
-			if arr[i] == it[j] {
-				existingVertex = arr[i]
+	var existingVertex, differVert int
+	for i := 0; i < len(it); i++ {
+		exist := false
+		for j := 0; j < len(arr); j++ {
+			if arr[j] == it[i] {
+				existingVertex = arr[j]
+				exist = true
 			}
+		}
+
+		if !exist {
+			differVert = it[i]
 		}
 	}
 
-	return existingVertex, it[0]
+	return existingVertex, differVert
 }
 
 func containsAll(subset, chain []int) bool {
@@ -144,27 +149,18 @@ func connectByEdge(chain []int, endp []int) []int {
 	if len(chain) == 0 {
 		//fmt.Println(chain, "chain")
 		chain = append(chain, endp...)
+		fmt.Println("initial chain ->", chain)
 		return chain
 
 	}
 	existingVertex, differVert := getItemsArr(chain, endp)
 
-	if existingVertex == -1 {
-		log.Fatal("no existing vertex")
-	}
-	fmt.Println(endp, "endpoint")
-	//fmt.Println(existingVertex, "existingVertex")'
-	// if existingVertex == chain[0] {
-	//
-	// } else {
-	// 	chain = append(chain, chain[len(chain)-1])
-	// }
 	if isStartItem(existingVertex, chain) {
-		fmt.Println(existingVertex, differVert, chain, "test")
+		fmt.Println(differVert, "<-", chain)
 		chain = append([]int{differVert}, chain...)
-		fmt.Println("yes", chain)
 	} else {
-		chain = append(chain, existingVertex)
+		fmt.Println(chain, "->", differVert)
+		chain = append(chain, differVert)
 	}
 
 	return chain
@@ -175,13 +171,9 @@ func ClosestPair(p []int) []int {
 
 	bt := biocoeff.NewBackTrack(p, 2)
 
-	fmt.Println(bt.AcceptedSubsets, len(bt.Subsets()), "bt.Subsets()")
-
-	for i := 1; i < len(p)-1; i++ {
+	for i := 0; i < len(p)-1; i++ {
 		dist := math.MaxInt
 		sub := []int{}
-
-		//fmt.Println(chain, "chain")
 
 		for _, subset := range bt.AcceptedSubsets {
 			if containsAll(subset, chain) {
@@ -217,8 +209,8 @@ func main() {
 	// }
 	// Visit(robots)
 
-	ch := ClosestPair([]int{5, 1, -21, 3, -1, 0, 11})
-	fmt.Println(ch, "chain")
+	ch := ClosestPair([]int{-5, 1, -21, 3, -1, 0, 11})
+	fmt.Println(ch, "final-chain")
 
 	// lotto.Permutations()
 }
