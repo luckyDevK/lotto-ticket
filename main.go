@@ -6,6 +6,8 @@ import (
 	biocoeff "impl-skiena/bioCoeff"
 	"math"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 /* [5] Implement the two TSP heuristics of Section 1.1 (page 5). Which of them gives
@@ -100,6 +102,7 @@ func Visit(robotTours []RobotTour) {
 }
 
 func getItemsArr(arr, it []int) (int, int) {
+	fmt.Println(it, "endpoint")
 	var existingVertex, differVert int
 	for i := 0; i < len(it); i++ {
 		exist := false
@@ -166,7 +169,13 @@ func connectByEdge(chain []int, endp []int) []int {
 	return chain
 }
 
-func ClosestPair(p []int) []int {
+func connectEndpoint(chain []int) []int {
+	leftEndp := chain[0]
+	chain = append(chain, leftEndp)
+	return chain
+}
+
+func ClosestPair(p []int) string {
 	var chain []int
 
 	bt := biocoeff.NewBackTrack(p, 2)
@@ -193,7 +202,23 @@ func ClosestPair(p []int) []int {
 		chain = connectByEdge(chain, sub)
 	}
 
-	return chain
+	chain = connectEndpoint(chain)
+
+	lenStrChain := len(chain) - 2
+
+	chainStr := make([]string, lenStrChain)
+	for i := range lenStrChain {
+		chainStr[i] = strconv.Itoa(chain[i])
+	}
+
+	lastOne := strconv.Itoa(chain[len(chain)-2])
+	lastTwo := strconv.Itoa(chain[len(chain)-1])
+
+	twoEndp := []string{lastOne, lastTwo}
+
+	chainS := slices.Concat(chainStr, twoEndp)
+
+	return strings.Join(chainS, " - ")
 }
 
 func main() {
@@ -209,7 +234,7 @@ func main() {
 	// }
 	// Visit(robots)
 
-	ch := ClosestPair([]int{-5, 1, -21, 3, -1, 0, 11})
+	ch := ClosestPair([]int{-10, 1, -5, 2})
 	fmt.Println(ch, "final-chain")
 
 	// lotto.Permutations()
