@@ -102,7 +102,6 @@ func Visit(robotTours []RobotTour) {
 }
 
 func getItemsArr(arr, it []int) (int, int) {
-	fmt.Println(it, "endpoint")
 	var existingVertex, differVert int
 	for i := 0; i < len(it); i++ {
 		exist := false
@@ -121,19 +120,24 @@ func getItemsArr(arr, it []int) (int, int) {
 	return existingVertex, differVert
 }
 
-func containsAll(subset, chain []int) bool {
+func containsAll(subset []int, chain [][]int) bool {
 	//fmt.Println(chain, "chaintos")
-	countExist := 0
 	for i := 0; i < len(chain); i++ {
+		countExist := 0
 		for j := 0; j < len(subset); j++ {
-			if chain[i] == subset[j] {
+			if subset[i] == chain[i][j] {
 				countExist++
 			}
+
+			if countExist == len(subset) {
+				return true
+			}
 		}
+
 	}
 
 	//fmt.Println(countExist == len(subset), chain, "countExist")
-	return countExist == len(subset)
+	return false
 }
 
 func isStartItem(it int, arr []int) bool {
@@ -176,7 +180,7 @@ func connectEndpoint(chain []int) []int {
 }
 
 func ClosestPair(p []int) string {
-	var chain []int
+	var chain [][]int
 
 	bt := biocoeff.NewBackTrack(p, 2)
 
@@ -220,6 +224,10 @@ func ClosestPair(p []int) string {
 
 	return strings.Join(chainS, " - ")
 }
+
+// problem =
+// closestPairDuplicate
+//
 
 func main() {
 
