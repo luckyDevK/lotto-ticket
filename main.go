@@ -13,6 +13,13 @@ better-quality solutions in practice? Can you devise a heuristic that works bett
 than both of them?
 */
 
+const (
+	absent = iota
+	tail
+	head
+	interior
+)
+
 // create object with these entity -> name : string , isVisited : bool, distance: int
 
 type RobotTour struct {
@@ -99,27 +106,6 @@ func Visit(robotTours []RobotTour) {
 	}
 }
 
-func getItemsArr(arr [][]int, it []int) (int, int) {
-	var existingVertex, differVert int
-	for i := 0; i < len(it); i++ {
-		exist := false
-		for j := 0; i < len(arr); i++ {
-			for k := 0; k < len(arr[i]); j++ {
-				if arr[i][j] == it[i] {
-					existingVertex = arr[i][j]
-					exist = true
-				}
-			}
-
-		}
-		if !exist {
-			differVert = it[i]
-		}
-	}
-
-	return existingVertex, differVert
-}
-
 func containsAll(subset []int, fragments [][]int) bool {
 	//fmt.Println(fragments, "chaintos")
 	for i := 0; i < len(fragments); i++ {
@@ -141,19 +127,8 @@ func containsAll(subset []int, fragments [][]int) bool {
 	return false
 }
 
-func getFromPosItem(it int, arr [][]int, pos string) (int, bool) {
-	for i := 0; i < len(arr); i++ {
-		if pos == "head" {
-			if len(arr[i]) > 0 && arr[i][0] == it {
-				return i, true
-			}
-		} else if pos == "tail" {
-			if len(arr[i]) > 0 && arr[i][len(arr[i])-1] == it {
-				return i, true
-			}
-		}
-	}
-	return -1, false
+type MarkerFrag struct {
+	index, marker int
 }
 
 func getDist(s, t int) int {
@@ -172,56 +147,73 @@ func addEdge(fragments [][]int, endp []int) [][]int {
 		return fragments
 	}
 
-	// check if both endp absent add new into fragment
+	// check if both vertices exist but in differ fragment
+	fragHoldEndp := make([]MarkerFrag, len(endp))
+	for i := 0; i < len(endp); i++ {
+		mf := locate(endp[i], fragments)
+		fragHoldEndp[i] = mf
+	}
 
-	// for F each fragments
-	for i := 0; i < len(fragments); i++ {
-		exist := false
-		for j := 0; j < len(fragments[i]); j++ {
-			for k := 0; k < len(endp); k++ {
-				if endp[k] == fragments[i][j] {
-					exist = true
-				}
-			}
+	a, b := fragHoldEndp[0], fragHoldEndp[1]
+
+	// if both endp absent add into fragments
+	if a.marker == absent && b.marker == absent {
+		fragments = append(fragments, endp)
+		return fragments
+	}
+
+	// if one of the endp exist in tail or head then add that new frag
+	if (b.marker == absent) != (a.marker == absent) {
+		present, newVertex := b, endp[0]
+		if present.marker == absent {
+			present, newVertex = a, endp[1]
 		}
-		if !exist {
-			fragments = append(fragments, endp)
+
+		switch present.marker {
+		case head:
+			fragments[present.index] = append([]int{newVertex}, fragments[present.index]...)
+			return fragments
+		case tail:
+			fragments[present.index] = append(fragments[present.index], newVertex)
 			return fragments
 		}
 	}
 
-	// check if one of the endp present add with singleton
-	existingVertex, differVert := getItemsArr(fragments, endp)
-
-	if index, ok := getFromPosItem(existingVertex, fragments, "head"); ok {
-		fmt.Println(differVert, "<-", fragments)
-		fragments[index] = append([]int{differVert}, fragments[index]...)
-		return fragments
-	} else if index, ok := getFromPosItem(existingVertex, fragments, "tail"); ok {
-		fmt.Println(fragments, "->", differVert)
-		fragments[index] = append(fragments[index], differVert)
-		return fragments
-	}
-
-	// check if both vertices exist but in differ fragment
-
-	fragHoldEndp := make(map[int]int)
-	for k := 0; k < len(endp); k++ {
-		if index, ok := getFromPosItem(endp[k], fragments, "head"); ok {
-			fragHoldEndp[index] = 0
-		} else if index, ok := getFromPosItem(endp[k], fragments, "tail"); ok {
-			fragHoldEndp[index] = len(fragments[index]) - 1
-		}
-	}
-
-	connectMultiVertex()
-	// connect multi-fragments
+	//connectMultiVertex()
 
 	return fragments
 }
 
-func connectMultiVertex(fragHoldEndp map[int]int) {
+func locate(v int, fragments [][]int) MarkerFrag {
+	for i := 0; i < len(fragments); i++ {
+		for j := 0; j < len(fragments[i]); j++ {
+			if fragments[i][j] == v {
+				switch {
+				case j == 0:
+					return MarkerFrag{i, head}
+				case j == len(fragments[i])-1:
+					return MarkerFrag{i, tail}
+				default:
+					return MarkerFrag{i, interior}
+				}
+			}
+		}
+	}
+	return MarkerFrag{index: -1, marker: absent}
+}
 
+func connectMultiVertex(fragHoldEndp []MarkerFrag, fragments [][]int) {
+	a, b := fragHoldEndp[0], fragHoldEndp[1]
+
+	isValidAFrag := a.marker != absent && a.marker != interior
+	isValidBFrag := b.marker != absent && b.marker != interior
+
+	if !isValidAFrag && !isValidBFrag {
+		return
+	}
+	// if  || b.marker != (tail || head) {
+
+	// }
 }
 
 func connectEndpoint(fragments []int) []int {
