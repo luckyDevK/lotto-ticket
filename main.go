@@ -6,6 +6,8 @@ import (
 	biocoeff "impl-skiena/bioCoeff"
 	"math"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 /* [5] Implement the two TSP heuristics of Section 1.1 (page 5). Which of them gives
@@ -143,7 +145,6 @@ func addEdge(fragments [][]int, endp []int) [][]int {
 	if len(fragments) == 0 {
 		//fmt.Println(fragments, "fragments")
 		fragments = append(fragments, endp)
-		fmt.Println("initial fragments ->", fragments)
 		return fragments
 	}
 
@@ -179,7 +180,7 @@ func addEdge(fragments [][]int, endp []int) [][]int {
 		}
 	}
 
-	//connectMultiVertex()
+	fragments = connectMultiVertex(fragHoldEndp, fragments)
 
 	return fragments
 }
@@ -202,24 +203,45 @@ func locate(v int, fragments [][]int) MarkerFrag {
 	return MarkerFrag{index: -1, marker: absent}
 }
 
-func connectMultiVertex(fragHoldEndp []MarkerFrag, fragments [][]int) {
+func connectMultiVertex(fragHoldEndp []MarkerFrag, fragments [][]int) [][]int {
 	a, b := fragHoldEndp[0], fragHoldEndp[1]
 
-	isValidAFrag := a.marker != absent && a.marker != interior
-	isValidBFrag := b.marker != absent && b.marker != interior
+	isAValidFrag := a.marker != absent && a.marker != interior
+	isBValidFrag := b.marker != absent && b.marker != interior
 
-	if !isValidAFrag && !isValidBFrag {
-		return
+	if !isAValidFrag && !isBValidFrag {
+		return fragments
 	}
-	// if  || b.marker != (tail || head) {
 
-	// }
+	switch {
+	case a.marker == head && b.marker == head:
+		swp := reverse(fragments[a.index])
+		fragments[b.index] = slices.Concat(swp, fragments[b.index])
+		fragments = append(fragments[:a.index], fragments[a.index+1:]...)
+	case a.marker == tail && b.marker == tail:
+		swp := reverse(fragments[b.index])
+		fragments[a.index] = slices.Concat(fragments[a.index], swp)
+		fragments = append(fragments[:b.index], fragments[b.index+1:]...)
+	default:
+		fragments[a.index] = slices.Concat(fragments[a.index], fragments[b.index])
+		fragments = append(fragments[:b.index], fragments[b.index+1:]...)
+	}
+
+	return fragments
 }
 
-func connectEndpoint(fragments []int) []int {
-	leftEndp := fragments[0]
-	fragments = append(fragments, leftEndp)
-	return fragments
+func reverse(arr []int) []int {
+	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+
+	return arr
+}
+
+func connectEndpoint(fragment []int) []int {
+	leftEndp := fragment[0]
+	fragment = append(fragment, leftEndp)
+	return fragment
 }
 
 func ClosestPair(p []int) string {
@@ -249,14 +271,12 @@ func ClosestPair(p []int) string {
 		fragments = addEdge(fragments, sub)
 	}
 
-	// fragments = connectEndpoint(fragments)
+	fragments[0] = connectEndpoint(fragments[0])
 
-	// lenStrChain := len(fragments) - 2
-
-	// chainStr := make([]string, lenStrChain)
-	// for i := range lenStrChain {
-	// 	chainStr[i] = strconv.Itoa(fragments[i])
-	// }
+	chainStr := make([]string, len(fragments[0]))
+	for i := range chainStr {
+		chainStr[i] = strconv.Itoa(fragments[0][i])
+	}
 
 	// lastOne := strconv.Itoa(fragments[len(fragments)-2])
 	// lastTwo := strconv.Itoa(fragments[len(fragments)-1])
@@ -265,7 +285,7 @@ func ClosestPair(p []int) string {
 
 	// chainS := slices.Concat(chainStr, twoEndp)
 
-	return "2222"
+	return strings.Join(chainStr, " - ")
 }
 
 // problem =
