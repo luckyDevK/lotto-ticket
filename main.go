@@ -221,8 +221,13 @@ func connectMultiVertex(fragHoldEndp []MarkerFrag, fragments [][]int) [][]int {
 		fragments[a.index] = slices.Concat(fragments[a.index], swp)
 		fragments = append(fragments[:b.index], fragments[b.index+1:]...)
 	default:
-		fragments[a.index] = slices.Concat(fragments[a.index], fragments[b.index])
-		fragments = append(fragments[:b.index], fragments[b.index+1:]...)
+		if a.marker == tail && b.marker == head {
+			fragments[a.index] = slices.Concat(fragments[a.index], fragments[b.index])
+			fragments = append(fragments[:b.index], fragments[b.index+1:]...)
+		} else if b.marker == tail && a.marker == head {
+			fragments[a.index] = slices.Concat(fragments[b.index], fragments[a.index])
+			fragments = append(fragments[:b.index], fragments[b.index+1:]...)
+		}
 	}
 
 	return fragments
@@ -240,6 +245,19 @@ func connectEndpoint(fragment []int) []int {
 	leftEndp := fragment[0]
 	fragment = append(fragment, leftEndp)
 	return fragment
+}
+
+func isInterior(subset []int, fragments [][]int) bool {
+	for i := 0; i < len(fragments); i++ {
+		for j := 0; j < len(fragments[i]); j++ {
+			for k := 0; k < len(subset); k++ {
+				if len(fragments[i]) > 2 && subset[k] == fragments[i][j] && j > 0 && j < len(fragments[i])-1 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func ClosestPair(p []int) string {
@@ -272,7 +290,6 @@ func ClosestPair(p []int) string {
 	// 	bAcc[i] = bs
 
 	// }
-	fmt.Println(bt.AcceptedSubsets, "sorted-before")
 
 	slices.SortFunc(bt.AcceptedSubsets, func(a, b []int) int {
 		aAbs := math.Abs(float64(p[a[0]] - p[a[1]]))
@@ -281,11 +298,10 @@ func ClosestPair(p []int) string {
 		return cmp.Compare(aAbs, bAbs)
 	})
 
-	fmt.Println(bt.AcceptedSubsets, "sorted-after")
-
 	// fmt.Println(bAcc, "bAcc")
 
 	for i := 0; i < len(p)-1; i++ {
+
 		dist := math.MaxInt
 		sub := []int{}
 
@@ -294,20 +310,21 @@ func ClosestPair(p []int) string {
 				continue
 			}
 
+			if isInterior(subset, fragments) {
+				continue
+			}
+
 			firstSub := subset[0]
 			lastSub := subset[1]
-			//fmt.Println(firstSub, lastSub, "firstSub And lastSub")
+			d := getDist(p[firstSub], p[lastSub])
 
-			if getDist(p[firstSub], p[lastSub]) <= dist {
+			if d <= dist {
 				sub = subset
-				dist = getDist(p[firstSub], p[lastSub])
+				dist = d
 			}
 		}
-		//fmt.Println("sub and dist", sub, dist)
 		fragments = addEdge(fragments, sub)
 	}
-
-	fmt.Println(fragments, "fragments")
 
 	fragments[0] = connectEndpoint(fragments[0])
 
@@ -346,7 +363,7 @@ func main() {
 	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
 
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
-	ch := ClosestPair([]int{5, 5, 1, 9})
+	ch := ClosestPair([]int{-13, -25, -16, 15, -18})
 	fmt.Println(ch, "final-fragments")
 
 	//lotto.Permutations()
