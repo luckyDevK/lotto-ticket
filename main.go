@@ -274,22 +274,6 @@ func ClosestPair(p []int) string {
 
 	// use  inline loop rather than backtracking
 	bt := biocoeff.NewBackTrack(indicies, 2)
-	// fmt.Println(bt.AcceptedSubsets, "acceptedSubset")
-	// fmt.Println(len(p), "pragos")
-
-	// bAcc := make([][]int, len(bt.AcceptedSubsets))
-	// // iterate over ba
-	// for i, ba := range bt.AcceptedSubsets {
-	// 	bs := make([]int, len(ba))
-	// 	for j, b := range ba {
-	// 		val := p[b]
-	// 		bs[j] = val
-	// 		// fmt.Println("abs", math.Abs(float64(p[i]-p[j])))
-	// 	}
-	// 	slices.Sort(bs)
-	// 	bAcc[i] = bs
-
-	// }
 
 	slices.SortFunc(bt.AcceptedSubsets, func(a, b []int) int {
 		aAbs := math.Abs(float64(p[a[0]] - p[a[1]]))
@@ -297,8 +281,6 @@ func ClosestPair(p []int) string {
 
 		return cmp.Compare(aAbs, bAbs)
 	})
-
-	// fmt.Println(bAcc, "bAcc")
 
 	for i := 0; i < len(p)-1; i++ {
 
@@ -332,13 +314,6 @@ func ClosestPair(p []int) string {
 	for i := range chainStr {
 		chainStr[i] = strconv.Itoa(p[fragments[0][i]])
 	}
-
-	// lastOne := strconv.Itoa(fragments[len(fragments)-2])
-	// lastTwo := strconv.Itoa(fragments[len(fragments)-1])
-
-	// twoEndp := []string{lastOne, lastTwo}
-
-	// chainS := slices.Concat(chainStr, twoEndp)
 
 	return strings.Join(chainStr, " - ")
 }
