@@ -180,9 +180,7 @@ func addEdge(fragments [][]int, endp []int) [][]int {
 		}
 	}
 
-	fragments = connectMultiVertex(fragHoldEndp, fragments)
-
-	return fragments
+	return connectMultiVertex(fragHoldEndp, fragments)
 }
 
 func locate(v int, fragments [][]int) MarkerFrag {
@@ -247,7 +245,45 @@ func connectEndpoint(fragment []int) []int {
 func ClosestPair(p []int) string {
 	var fragments [][]int
 
-	bt := biocoeff.NewBackTrack(p, 2)
+	if len(p) == 1 {
+		return strconv.Itoa(p[0])
+	}
+
+	indicies := make([]int, len(p))
+	for i := 0; i < len(p); i++ {
+		indicies[i] = i
+	}
+
+	// use  inline loop rather than backtracking
+	bt := biocoeff.NewBackTrack(indicies, 2)
+	// fmt.Println(bt.AcceptedSubsets, "acceptedSubset")
+	// fmt.Println(len(p), "pragos")
+
+	// bAcc := make([][]int, len(bt.AcceptedSubsets))
+	// // iterate over ba
+	// for i, ba := range bt.AcceptedSubsets {
+	// 	bs := make([]int, len(ba))
+	// 	for j, b := range ba {
+	// 		val := p[b]
+	// 		bs[j] = val
+	// 		// fmt.Println("abs", math.Abs(float64(p[i]-p[j])))
+	// 	}
+	// 	slices.Sort(bs)
+	// 	bAcc[i] = bs
+
+	// }
+	fmt.Println(bt.AcceptedSubsets, "sorted-before")
+
+	slices.SortFunc(bt.AcceptedSubsets, func(a, b []int) int {
+		aAbs := math.Abs(float64(p[a[0]] - p[a[1]]))
+		bAbs := math.Abs(float64(p[b[0]] - p[b[1]]))
+
+		return cmp.Compare(aAbs, bAbs)
+	})
+
+	fmt.Println(bt.AcceptedSubsets, "sorted-after")
+
+	// fmt.Println(bAcc, "bAcc")
 
 	for i := 0; i < len(p)-1; i++ {
 		dist := math.MaxInt
@@ -262,20 +298,22 @@ func ClosestPair(p []int) string {
 			lastSub := subset[1]
 			//fmt.Println(firstSub, lastSub, "firstSub And lastSub")
 
-			if getDist(firstSub, lastSub) <= dist {
+			if getDist(p[firstSub], p[lastSub]) <= dist {
 				sub = subset
-				dist = getDist(firstSub, lastSub)
+				dist = getDist(p[firstSub], p[lastSub])
 			}
 		}
 		//fmt.Println("sub and dist", sub, dist)
 		fragments = addEdge(fragments, sub)
 	}
 
+	fmt.Println(fragments, "fragments")
+
 	fragments[0] = connectEndpoint(fragments[0])
 
 	chainStr := make([]string, len(fragments[0]))
 	for i := range chainStr {
-		chainStr[i] = strconv.Itoa(fragments[0][i])
+		chainStr[i] = strconv.Itoa(p[fragments[0][i]])
 	}
 
 	// lastOne := strconv.Itoa(fragments[len(fragments)-2])
@@ -305,8 +343,11 @@ func main() {
 	// }
 	// Visit(robots)
 
-	ch := ClosestPair([]int{-10, 1, -5, 2})
+	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
+
+	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
+	ch := ClosestPair([]int{5, 5, 1, 9})
 	fmt.Println(ch, "final-fragments")
 
-	// lotto.Permutations()
+	//lotto.Permutations()
 }
