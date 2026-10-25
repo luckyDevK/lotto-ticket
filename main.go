@@ -2,12 +2,15 @@ package main
 
 import (
 	"cmp"
+	"encoding/json"
 	"fmt"
 	biocoeff "impl-skiena/bioCoeff"
 	"math"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /* [5] Implement the two TSP heuristics of Section 1.1 (page 5). Which of them gives
@@ -260,7 +263,24 @@ func isInterior(subset []int, fragments [][]int) bool {
 	return false
 }
 
-func ClosestPair(p []int) string {
+// CPStep is one merge iteration of ClosestPair, for visualization/tracing.
+// Added/Dist describe the edge chosen that iteration; Fragments is a snapshot
+// (by index into p) of all fragments right after that edge was applied.
+type CPStep struct {
+	Added     []int
+	Dist      int
+	Fragments [][]int
+}
+
+func cloneFragments(fragments [][]int) [][]int {
+	out := make([][]int, len(fragments))
+	for i, f := range fragments {
+		out[i] = slices.Clone(f)
+	}
+	return out
+}
+
+func ClosestPair(p []int, record ...func(CPStep)) string {
 	var fragments [][]int
 
 	if len(p) == 1 {
@@ -306,6 +326,10 @@ func ClosestPair(p []int) string {
 			}
 		}
 		fragments = addEdge(fragments, sub)
+
+		if len(record) > 0 {
+			record[0](CPStep{Added: sub, Dist: dist, Fragments: cloneFragments(fragments)})
+		}
 	}
 
 	fragments[0] = connectEndpoint(fragments[0])
@@ -324,6 +348,21 @@ func ClosestPair(p []int) string {
 
 func main() {
 
+	if os.Getenv("CP_DUMP") == "1" {
+		traces := []CPTrace{
+			BuildCPTrace("4 fragments, clean bridges", []int{0, 1, 10, 12, 30, 33, 60, 64}),
+			BuildCPTrace("5-point trace", []int{0, 1, 5, 10, 11}),
+			BuildCPTrace("fragment order vs value order", []int{-50, -49, 0, 4, 100, 102}),
+			BuildCPTrace("three 3-vertex fragments", []int{0, 1, 2, 20, 21, 22, 40, 41, 42}),
+		}
+		out, err := json.MarshalIndent(traces, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(out))
+		return
+	}
+
 	// robots := []RobotTour{
 	// 	{Name: "u1", point: -21},
 	// 	{Name: "u2", point: -5},
@@ -340,6 +379,8 @@ func main() {
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
 	ch := ClosestPair([]int{-13, -25, -16, 15, -18})
 	fmt.Println(ch, "final-fragments")
+
+	AnimateClosestPair([]int{0, 1, 10, 12, 30, 33, 60, 64}, 70, 700*time.Millisecond)
 
 	//lotto.Permutations()
 }
