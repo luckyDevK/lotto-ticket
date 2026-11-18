@@ -2,15 +2,12 @@ package main
 
 import (
 	"cmp"
-	"encoding/json"
 	"fmt"
 	biocoeff "impl-skiena/bioCoeff"
 	"math"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 )
 
 /* [5] Implement the two TSP heuristics of Section 1.1 (page 5). Which of them gives
@@ -280,11 +277,15 @@ func cloneFragments(fragments [][]int) [][]int {
 	return out
 }
 
-func ClosestPair(p []int, record ...func(CPStep)) string {
+func ClosestPair(p []int) string {
 	var fragments [][]int
 
+	if len(p) == 0 {
+		return "-"
+	}
+
 	if len(p) == 1 {
-		return strconv.Itoa(p[0])
+		return fmt.Sprintf("%s - %s", strconv.Itoa(p[0]), strconv.Itoa(p[0]))
 	}
 
 	indicies := make([]int, len(p))
@@ -303,7 +304,6 @@ func ClosestPair(p []int, record ...func(CPStep)) string {
 	})
 
 	for i := 0; i < len(p)-1; i++ {
-
 		dist := math.MaxInt
 		sub := []int{}
 
@@ -326,10 +326,6 @@ func ClosestPair(p []int, record ...func(CPStep)) string {
 			}
 		}
 		fragments = addEdge(fragments, sub)
-
-		if len(record) > 0 {
-			record[0](CPStep{Added: sub, Dist: dist, Fragments: cloneFragments(fragments)})
-		}
 	}
 
 	fragments[0] = connectEndpoint(fragments[0])
@@ -339,29 +335,27 @@ func ClosestPair(p []int, record ...func(CPStep)) string {
 		chainStr[i] = strconv.Itoa(p[fragments[0][i]])
 	}
 
+	//calculateTotalDist
+
 	return strings.Join(chainStr, " - ")
 }
 
-// problem =
-// closestPairDuplicate
-//
-
 func main() {
 
-	if os.Getenv("CP_DUMP") == "1" {
-		traces := []CPTrace{
-			BuildCPTrace("4 fragments, clean bridges", []int{0, 1, 10, 12, 30, 33, 60, 64}),
-			BuildCPTrace("5-point trace", []int{0, 1, 5, 10, 11}),
-			BuildCPTrace("fragment order vs value order", []int{-50, -49, 0, 4, 100, 102}),
-			BuildCPTrace("three 3-vertex fragments", []int{0, 1, 2, 20, 21, 22, 40, 41, 42}),
-		}
-		out, err := json.MarshalIndent(traces, "", "  ")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(string(out))
-		return
-	}
+	// if os.Getenv("CP_DUMP") == "1" {
+	// 	traces := []CPTrace{
+	// 		BuildCPTrace("4 fragments, clean bridges", []int{0, 1, 10, 12, 30, 33, 60, 64}),
+	// 		BuildCPTrace("5-point trace", []int{0, 1, 5, 10, 11}),
+	// 		BuildCPTrace("fragment order vs value order", []int{-50, -49, 0, 4, 100, 102}),
+	// 		BuildCPTrace("three 3-vertex fragments", []int{0, 1, 2, 20, 21, 22, 40, 41, 42}),
+	// 	}
+	// 	out, err := json.MarshalIndent(traces, "", "  ")
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	fmt.Println(string(out))
+	// 	return
+	// }
 
 	// robots := []RobotTour{
 	// 	{Name: "u1", point: -21},
@@ -377,10 +371,10 @@ func main() {
 	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
 
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
-	ch := ClosestPair([]int{-13, -25, -16, 15, -18})
+	ch := ClosestPair([]int{})
 	fmt.Println(ch, "final-fragments")
 
-	AnimateClosestPair([]int{0, 1, 10, 12, 30, 33, 60, 64}, 70, 700*time.Millisecond)
+	// AnimateClosestPair([]int{0, 1, 10, 12, 30, 33, 60, 64}, 70, 700*time.Millisecond)
 
 	//lotto.Permutations()
 }
