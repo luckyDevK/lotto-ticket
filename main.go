@@ -302,7 +302,7 @@ func ClosestPair(p []int) string {
 
 		return cmp.Compare(aAbs, bAbs)
 	})
-
+	// -5, 1, -2, -9
 	for i := 0; i < len(p)-1; i++ {
 		dist := math.MaxInt
 		sub := []int{}
@@ -321,6 +321,9 @@ func ClosestPair(p []int) string {
 			d := getDist(p[firstSub], p[lastSub])
 
 			if d <= dist {
+				if p[firstSub] > p[lastSub] {
+					slices.Reverse(subset)
+				}
 				sub = subset
 				dist = d
 			}
@@ -371,7 +374,7 @@ func main() {
 	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
 
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
-	ch := ClosestPair([]int{})
+	ch := ClosestPair([]int{-2, 4, -8, -9})
 	fmt.Println(ch, "final-fragments")
 
 	// AnimateClosestPair([]int{0, 1, 10, 12, 30, 33, 60, 64}, 70, 700*time.Millisecond)
