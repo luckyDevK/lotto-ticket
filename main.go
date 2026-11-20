@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	biocoeff "impl-skiena/bioCoeff"
+	"log"
 	"math"
 	"slices"
 	"strconv"
@@ -277,15 +278,36 @@ func cloneFragments(fragments [][]int) [][]int {
 	return out
 }
 
-func ClosestPair(p []int) string {
+func calculateTotalDist(chainStr []string) int {
+	var totalDist int
+	chainInts := make([]int, 0, len(chainStr))
+
+	for i := 0; i < len(chainStr); i++ {
+		chainInt, err := strconv.Atoi(chainStr[i])
+
+		if err != nil {
+			log.Fatal("error while convert into int")
+		}
+
+		chainInts = append(chainInts, chainInt)
+	}
+
+	for i := 0; i < len(chainInts)-1; i++ {
+		totalDist += getDist(chainInts[i], chainInts[i+1])
+	}
+
+	return totalDist
+}
+
+func ClosestPair(p []int) (string, int) {
 	var fragments [][]int
 
 	if len(p) == 0 {
-		return "-"
+		return "-", -1
 	}
 
 	if len(p) == 1 {
-		return fmt.Sprintf("%s - %s", strconv.Itoa(p[0]), strconv.Itoa(p[0]))
+		return fmt.Sprintf("%s - %s", strconv.Itoa(p[0]), strconv.Itoa(p[0])), getDist(p[0], p[0])
 	}
 
 	indicies := make([]int, len(p))
@@ -302,7 +324,6 @@ func ClosestPair(p []int) string {
 
 		return cmp.Compare(aAbs, bAbs)
 	})
-	// -5, 1, -2, -9
 	for i := 0; i < len(p)-1; i++ {
 		dist := math.MaxInt
 		sub := []int{}
@@ -338,9 +359,9 @@ func ClosestPair(p []int) string {
 		chainStr[i] = strconv.Itoa(p[fragments[0][i]])
 	}
 
-	//calculateTotalDist
+	dist := calculateTotalDist(chainStr)
 
-	return strings.Join(chainStr, " - ")
+	return strings.Join(chainStr, " - "), dist
 }
 
 func main() {
@@ -374,8 +395,9 @@ func main() {
 	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
 
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
-	ch := ClosestPair([]int{-2, 4, -8, -9})
-	fmt.Println(ch, "final-fragments")
+	chain, dist := ClosestPair([]int{-2, 4, -8, -9})
+	fmt.Println("final-fragments", chain)
+	fmt.Println("dist", dist)
 
 	// AnimateClosestPair([]int{0, 1, 10, 12, 30, 33, 60, 64}, 70, 700*time.Millisecond)
 
