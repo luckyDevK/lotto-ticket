@@ -119,6 +119,16 @@ func TestClosestPairInputOrder(t *testing.T) {
 		{0, 1, 2, 3, 4, 50},
 		// perfectly uniform: every pair at distance 5 is a candidate
 		{0, 5, 10, 15, 20, 25},
+
+		// the exact mirror of the first base. Same fragment structure, every
+		// coordinate negated: if one of this pair passes and the other fails,
+		// the defect is in sign handling, not in the merge bookkeeping.
+		{-33, -30, -12, -10, -1, 0},
+		// strictly negative, so no coordinate is ever >= 0 at any point
+		{-33, -30, -12, -10, -2, -1},
+		// fragments born on both sides of zero, then bridged ACROSS it, so a
+		// merge has to join a negative endpoint to a positive one
+		{-12, -10, -1, 1, 10, 12},
 	}
 
 	for _, base := range bases {
@@ -152,6 +162,11 @@ func TestClosestPairDescending(t *testing.T) {
 		{0, 1, 1000, 1001, 2000, 2001, 3000, 3001},
 		{-20, -19, -1, 0, 1, 19, 20},
 		{0, 1, 7, 8, 9, 23, 24, 40, 41, 42, 55, 70, 71, 90},
+		// mirrors of the above, so reversing/scrambling is exercised on
+		// all-negative and zero-straddling coordinates too
+		{-64, -60, -33, -30, -12, -10, -1, 0},
+		{-90, -71, -70, -55, -42, -41, -40, -24, -23, -9, -8, -7, -1},
+		{-31, -30, -1, 1, 30, 31},
 	}
 
 	for _, s := range shapes {
@@ -191,6 +206,17 @@ func TestClosestPairExhaustive(t *testing.T) {
 	universes := map[string][]int{
 		"uniform":      {0, 1, 2, 3, 4, 5, 6, 7},
 		"growing gaps": {0, 1, 3, 6, 10, 15, 21, 28},
+		// straddles zero, so a subset may land entirely left of it, entirely
+		// right of it, or across it -- and when it lands across, every merge
+		// distance is a difference of opposite-signed coordinates
+		"straddling zero": {-12, -7, -3, -1, 0, 1, 4, 9},
+		// strictly negative: no subset drawn from this universe contains a
+		// single non-negative coordinate, which is the case the other three
+		// universes cannot produce at all
+		"all negative": {-29, -22, -16, -11, -7, -4, -2, -1},
+		// the exact mirror of "uniform". Any subset here is the negation of a
+		// subset there with the same optimal cost, so the two must agree.
+		"uniform mirrored": {-7, -6, -5, -4, -3, -2, -1, 0},
 	}
 
 	for name, universe := range universes {
@@ -246,7 +272,9 @@ func TestClosestPairFuzzDeep(t *testing.T) {
 		"clustered": func(r *rand.Rand) []int {
 			clusters := 2 + r.Intn(4)
 			p := []int{}
-			base := 0
+			// start left of zero by a random amount, so a run either stays
+			// entirely negative or crosses zero partway through the clusters
+			base := -r.Intn(900)
 			for c := 0; c < clusters; c++ {
 				size := 1 + r.Intn(4)
 				step := 1 + r.Intn(3)
@@ -262,7 +290,10 @@ func TestClosestPairFuzzDeep(t *testing.T) {
 		// ones, so there is exactly one legal merge order and any mis-step shows
 		"exponential": func(r *rand.Rand) []int {
 			n := 3 + r.Intn(10)
-			p := []int{0}
+			// shift the whole staircase so it can sit entirely left of zero,
+			// entirely right of it, or across it, without changing the gap
+			// structure that makes the merge order unique
+			p := []int{r.Intn(1201) - 600}
 			gap := 1
 			for i := 1; i < n; i++ {
 				p = append(p, p[i-1]+gap)
@@ -279,7 +310,9 @@ func TestClosestPairFuzzDeep(t *testing.T) {
 		"uniform": func(r *rand.Rand) []int {
 			n := 3 + r.Intn(16)
 			step := 1 + r.Intn(9)
-			off := r.Intn(41) - 20
+			// wide enough that a whole run frequently lands below zero, not just
+			// straddling it
+			off := r.Intn(241) - 180
 			p := []int{}
 			for i := 0; i < n; i++ {
 				p = append(p, off+i*step)
@@ -447,7 +480,8 @@ func TestClosestPairStress(t *testing.T) {
 		t.Run(fmt.Sprintf("uniform n=%d", n), func(t *testing.T) {
 			p := make([]int, n)
 			for i := range p {
-				p[i] = i * 3
+				// centred on zero, so half the ladder is negative at every n
+				p[i] = (i - n/2) * 3
 			}
 			if why := cpVerdict(p); why != "" {
 				t.Errorf("n=%d ascending: %s", n, why)
@@ -477,6 +511,8 @@ func TestClosestPairStress(t *testing.T) {
 			{-1000000000, -999999999, 999999999, 1000000000},
 			{1 << 40, 1<<40 + 1, 1 << 41, 1<<41 + 1},
 			{-(1 << 40), 0, 1 << 40},
+			{-(1 << 41), -(1 << 41) + 1, -(1 << 40), -(1 << 40) + 1},
+			{-1000000000, -999999998, -999999996},
 		} {
 			if why := cpVerdict(p); why != "" {
 				t.Errorf("input %v: %s", p, why)
