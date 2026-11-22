@@ -278,7 +278,7 @@ func cloneFragments(fragments [][]int) [][]int {
 	return out
 }
 
-func calculateTotalDist(chainStr []string) int {
+func calculateTotalDist(chainStr []string, pair []int) int {
 	var totalDist int
 	chainInts := make([]int, 0, len(chainStr))
 
@@ -293,7 +293,7 @@ func calculateTotalDist(chainStr []string) int {
 	}
 
 	for i := 0; i < len(chainInts)-1; i++ {
-		totalDist += getDist(chainInts[i], chainInts[i+1])
+		totalDist += getDist(pair[chainInts[i]], pair[chainInts[i+1]])
 	}
 
 	return totalDist
@@ -356,12 +356,58 @@ func ClosestPair(p []int) (string, int) {
 
 	chainStr := make([]string, len(fragments[0]))
 	for i := range chainStr {
-		chainStr[i] = strconv.Itoa(p[fragments[0][i]])
+		chainStr[i] = strconv.Itoa(fragments[0][i])
 	}
 
-	dist := calculateTotalDist(chainStr)
+	dist := calculateTotalDist(chainStr, p)
 
 	return strings.Join(chainStr, " - "), dist
+}
+
+func swapEdges(chainIdx []int, j, i int) []int {
+	i += 1
+	for i < j {
+		chainIdx[i], chainIdx[j] = chainIdx[j], chainIdx[i]
+		i++
+		j--
+	}
+	return chainIdx
+}
+
+func twoOpt(dist int, chainIdx, pair []int) {
+	// get the lenght of chainIdx
+	currDist := dist
+	fmt.Printf("path1 total dist %v\n", currDist)
+
+	lenChain := len(chainIdx)
+
+	foundImprovement := true
+	for foundImprovement {
+		foundImprovement = false
+		for i := 0; i < lenChain-1; i++ {
+			for j := i + 2; j < lenChain; j++ {
+				lenghtDelta := -getDist(pair[chainIdx[i]], pair[chainIdx[i+1]]) - getDist(pair[chainIdx[j]], pair[chainIdx[(j+1)%lenChain]]) + getDist(pair[chainIdx[i]], pair[chainIdx[j]]) + getDist(pair[chainIdx[i+1]], pair[chainIdx[(j+1)%lenChain]])
+
+				if lenghtDelta < 0 {
+					chainIdx = swapEdges(chainIdx, i, j)
+					currDist += lenghtDelta
+					foundImprovement = true
+				}
+			}
+		}
+	}
+
+	fmt.Println("2-opt", chainIdx)
+	fmt.Println("newDist", currDist)
+}
+
+func convertChainToInt(arr []string) (chainInt []int) {
+	for _, nodeStr := range arr {
+		nodeInt, _ := strconv.Atoi(nodeStr)
+		chainInt = append(chainInt, nodeInt)
+	}
+
+	return chainInt
 }
 
 func main() {
@@ -392,12 +438,41 @@ func main() {
 	// }
 	// Visit(robots)
 
+	pair := []int{-50, -49, 0, 4, 100, 102}
 	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
 
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
-	chain, dist := ClosestPair([]int{-2, 4, -8, -9})
-	fmt.Println("final-fragments", chain)
+	chainIdx, dist := ClosestPair(pair)
+	fmt.Println(chainIdx, "chainIdx")
+
+	chainIdxArr := strings.Split(chainIdx, " - ")
+	chainInt := make([]int, 0, len(chainIdxArr))
+
+	var path1 string
+	for i, idx := range chainIdxArr {
+		idxNum, _ := strconv.Atoi(idx)
+		if i == len(chainIdxArr)-1 {
+			path1 += strconv.Itoa(pair[idxNum])
+		} else {
+			path1 += strconv.Itoa(pair[idxNum]) + " - "
+		}
+	}
+
+	chainInt = convertChainToInt(chainIdxArr)
+
+	fmt.Println(path1, "path1")
 	fmt.Println("dist", dist)
+
+	twoOpt(dist, chainInt, pair)
+	// for _, el := range chainIdxArr {
+	// 	elNum, err := strconv.Atoi(el)
+
+	// 	if err != nil {
+	// 		log.Fatal("fatal")
+	// 	}
+
+	// 	fmt.Println("el", pair[elNum])
+	// }
 
 	// AnimateClosestPair([]int{0, 1, 10, 12, 30, 33, 60, 64}, 70, 700*time.Millisecond)
 
