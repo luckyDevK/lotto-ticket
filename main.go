@@ -389,7 +389,7 @@ func twoOpt(dist int, chainIdx, pair []int) {
 				lenghtDelta := -getDist(pair[chainIdx[i]], pair[chainIdx[i+1]]) - getDist(pair[chainIdx[j]], pair[chainIdx[(j+1)%lenChain]]) + getDist(pair[chainIdx[i]], pair[chainIdx[j]]) + getDist(pair[chainIdx[i+1]], pair[chainIdx[(j+1)%lenChain]])
 
 				if lenghtDelta < 0 {
-					chainIdx = swapEdges(chainIdx, i, j)
+					chainIdx = swapEdges(chainIdx, j, i)
 					currDist += lenghtDelta
 					foundImprovement = true
 				}
@@ -442,12 +442,12 @@ func main() {
 	// bt := biocoeff.NewBackTrack([]int{5, 5, 1, 9}, 2)
 
 	// fmt.Println(bt.AcceptedSubsets, "acceptedSubsets")
-	chainIdx, dist := ClosestPair(pair)
-	fmt.Println(chainIdx, "chainIdx")
+	chainIdx := "0 - 1 - 2 - 4 - 5 - 3 - 0"
 
 	chainIdxArr := strings.Split(chainIdx, " - ")
 	chainInt := make([]int, 0, len(chainIdxArr))
 
+	dist := calculateTotalDist(chainIdxArr, pair)
 	var path1 string
 	for i, idx := range chainIdxArr {
 		idxNum, _ := strconv.Atoi(idx)
